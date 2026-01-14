@@ -3,64 +3,163 @@ const express = require("express");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
-const Book = require("./Models/Book.model");
+
+const Student = require("./Models/Student.model");
+const Cohort = require("./Models/Cohort.model");
+
 const PORT = 5005;
 
-// MONGOOOOSE
+// DB CONNECTION
 mongoose
-  .connect("mongodb://127.0.0.1:27017/mongoose-example-dev")
-  .then(x => console.log(`Connected to Database: "${x.connections[0].name}"`))
-  .catch(err => console.error("Error connecting to MongoDB", err));
- 
-// STATIC DATA
-// Devs Team - Import the provided files with JSON data of students and cohorts here:
-// ...
-const students = require("./students.json");
-const cohort = require("./cohorts.json")
-// INITIALIZE EXPRESS APP - https://expressjs.com/en/4x/api.html#express
+  .connect("mongodb://127.0.0.1:27017/ironhack-api")
+  .then(x =>
+    console.log(`Connected to MongoDB: "${x.connections[0].name}"`)
+  )
+  .catch(err =>
+    console.error("MongoDB connection error:", err)
+  );
+
+// APP
 const app = express();
 
-
 // MIDDLEWARE
-// Research Team - Set up CORS middleware here:
-// ...
-app.use(
-  cors({origin: ['http://localhost:5173'],}));
+app.use(cors({ origin: ["http://localhost:5173"] }));
 app.use(express.json());
 app.use(morgan("dev"));
-app.use(express.static("public"));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-
-// ROUTES - https://expressjs.com/en/starter/basic-routing.html
-// Devs Team - Start working on the routes here:
-// ...
+// DOCS
 app.get("/docs", (req, res) => {
   res.sendFile(__dirname + "/views/docs.html");
 });
-app.get("/api/cohorts", (req, res) =>{
-  res.json(cohort);
-});
-app.get("/api/students", (req, res) => {
-  res.json(students);
-});
- //books - Retrieve all books from the database
-app.get("/books", (req, res) => {
-  Book.find({})
-    .then((books) => {
-      console.log("Retrieved books ->", books);
-      res.json(books);
-    })
-    .catch((error) => {
-      console.error("Error while retrieving books ->", error);
-      res.status(500).json({ error: "Failed to retrieve books" });
-    });
-});
 
 
 
-// START SERVER
+// STUDENT ROUTES
+
+
+app.post("/api/students", async (req, res) => {
+  try {
+    const student = await Student.create(req.body);
+    res.status(201).json(student);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+app.get("/api/students", async (req, res) => {
+  try {
+    const students = await Student.find().populate("cohort");
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+app.get("/api/students/cohort/:cohortId", async (req, res) => {
+  try {
+    const students = await Student.find({
+      cohort: req.params.cohortId,
+    }).populate("cohort");
+
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/students/:studentId", async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.studentId).populate(
+      "cohort"
+    );
+    res.json(student);
+  } catch (err) {
+    res.status(404).json({ error: "Student not found" });
+  }
+});
+
+
+app.put("/api/students/:studentId", async (req, res) => {
+  try {
+    const updatedStudent = await Student.findByIdAndUpdate(
+      req.params.studentId,
+      req.body,
+      { new: true }
+    );
+    res.json(updatedStudent);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+app.delete("/api/students/:studentId", async (req, res) => {
+  try {
+    await Student.findByIdAndDelete(req.params.studentId);
+    res.status(204).send();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+// COHORT ROUTES
+app.post("/api/cohorts", async (req, res) => {
+  try {
+    const cohort = await Cohort.create(req.body);
+    res.status(201).json(cohort);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/cohorts", async (req, res) => {
+  try {
+    const cohorts = await Cohort.find();
+    res.json(cohorts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+app.get("/api/cohorts/:cohortId", async (req, res) => {
+  try {
+    const cohort = await Cohort.findById(req.params.cohortId);
+    res.json(cohort);
+  } catch (err) {
+    res.status(404).json({ error: "Cohort not found" });
+  }
+});
+
+app.put("/api/cohorts/:cohortId", async (req, res) => {
+  try {
+    const updatedCohort = await Cohort.findByIdAndUpdate(
+      req.params.cohortId,
+      req.body,
+      { new: true }
+    );
+    res.json(updatedCohort);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE COHORT
+app.delete("/api/cohorts/:cohortId", async (req, res) => {
+  try {
+    await Cohort.findByIdAndDelete(req.params.cohortId);
+    res.status(204).send();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// SERVER
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
