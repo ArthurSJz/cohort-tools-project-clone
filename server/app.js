@@ -11,7 +11,7 @@ const PORT = 5005;
 
 // DB CONNECTION
 mongoose
-  .connect("mongodb://127.0.0.1:27017/ironhack-api")
+  .connect("mongodb+srv://Arthur:adminDB1@cohortdb1.4dzw3wo.mongodb.net/cohort-tools-api?retryWrites=true&w=majority")
   .then(x =>
     console.log(`Connected to MongoDB: "${x.connections[0].name}"`)
   )
