@@ -4,6 +4,12 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 
+// Import the custom error handling middleware:
+const {
+  errorHandler,
+  notFoundHandler,
+} = require("./middleware/error-handling");
+
 const Student = require("./Models/Student.model");
 const Cohort = require("./Models/Cohort.model");
 
@@ -11,13 +17,11 @@ const PORT = 5005;
 
 // DB CONNECTION
 mongoose
-  .connect("mongodb+srv://Arthur:adminDB1@cohortdb1.4dzw3wo.mongodb.net/cohort-tools-api?retryWrites=true&w=majority")
-  .then(x =>
-    console.log(`Connected to MongoDB: "${x.connections[0].name}"`)
+  .connect(
+    "mongodb+srv://Arthur:adminDB1@cohortdb1.4dzw3wo.mongodb.net/cohort-tools-api?retryWrites=true&w=majority"
   )
-  .catch(err =>
-    console.error("MongoDB connection error:", err)
-  );
+  .then((x) => console.log(`Connected to MongoDB: "${x.connections[0].name}"`))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // APP
 const app = express();
@@ -34,10 +38,7 @@ app.get("/docs", (req, res) => {
   res.sendFile(__dirname + "/views/docs.html");
 });
 
-
-
 // STUDENT ROUTES
-
 
 app.post("/api/students", async (req, res) => {
   try {
@@ -48,7 +49,6 @@ app.post("/api/students", async (req, res) => {
   }
 });
 
-
 app.get("/api/students", async (req, res) => {
   try {
     const students = await Student.find().populate("cohort");
@@ -57,7 +57,6 @@ app.get("/api/students", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 app.get("/api/students/cohort/:cohortId", async (req, res) => {
   try {
@@ -82,7 +81,6 @@ app.get("/api/students/:studentId", async (req, res) => {
   }
 });
 
-
 app.put("/api/students/:studentId", async (req, res) => {
   try {
     const updatedStudent = await Student.findByIdAndUpdate(
@@ -96,7 +94,6 @@ app.put("/api/students/:studentId", async (req, res) => {
   }
 });
 
-
 app.delete("/api/students/:studentId", async (req, res) => {
   try {
     await Student.findByIdAndDelete(req.params.studentId);
@@ -105,7 +102,6 @@ app.delete("/api/students/:studentId", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
 
 // COHORT ROUTES
 app.post("/api/cohorts", async (req, res) => {
@@ -125,7 +121,6 @@ app.get("/api/cohorts", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 app.get("/api/cohorts/:cohortId", async (req, res) => {
   try {
@@ -158,6 +153,10 @@ app.delete("/api/cohorts/:cohortId", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+// Set up custom error handling middleware:
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // SERVER
 app.listen(PORT, () => {
